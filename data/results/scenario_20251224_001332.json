@@ -1,0 +1,27 @@
+{
+  "indicators": {
+    "regime": "CM2003",
+    "gold_price": 1400.0,
+    "discount_rate": 0.05,
+    "royalty_rate": 0.087,
+    "cit_rate": 0.21,
+    "NPV_pre_tax": 471351976.2056218,
+    "NPV_post_tax": 248372839.47695416,
+    "Gov_NPV": 222979136.7286676,
+    "AETR": 0.4730629083676432,
+    "TEMI": 0.4730629083676432
+  },
+  "meta": {
+    "excel": "data\\data.xlsx",
+    "regime": "CM2003",
+    "mine_sheet": null,
+    "amort_sheet": "Amortissement",
+    "params": {
+      "gold_price": 1400.0,
+      "discount_rate": 0.05,
+      "royalty_rate": 0.087,
+      "cit_rate": 0.21
+    },
+    "saved_at": "2025-12-24T00:13:32"
+  }
+}
