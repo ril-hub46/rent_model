@@ -1,0 +1,12 @@
+services:
+  app:
+    build:
+      context: ..                
+      dockerfile: .devcontainer/Dockerfile
+    container_name: rent_model_app
+    image: rent_model
+    ports:
+      - "8000:8000"
+    volumes:
+      - ..:/app
+    command: ["python", "src/main.py"]

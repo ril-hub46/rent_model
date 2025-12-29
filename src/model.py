@@ -120,7 +120,7 @@ class ProjectInputs:
     capex: np.ndarray            # USD
     depreciation: np.ndarray     # USD
     base_gold_price: float       # USD/oz in the sheet
-    discount_rate: float         # e.g. 0.10
+    discount_rate: float         
 
 
 @dataclass(frozen=True)
