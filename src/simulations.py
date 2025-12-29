@@ -21,12 +21,10 @@ def sweep_price_from_excel(
     Runs the model for a grid of gold prices and returns indicators per scenario.
     """
     reg = default_regime(regime_code)
-    inputs = load_project_inputs_from_excel(
-        excel_path,
+    inputs = load_project_inputs_from_excel(excel_path,
         regime=regime_code,
         mine_sheet=mine_sheet,
-        amort_sheet=amort_sheet,
-    )
+        amort_sheet=amort_sheet)
 
     rows = []
     for p in prices:
