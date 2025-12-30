@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any, Dict
 import pandas as pd
 import pandas.testing as pdt
-import pytest
 from src.results_store import (
     _safe_float,
     _hash_payload,

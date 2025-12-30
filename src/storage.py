@@ -3,7 +3,7 @@ import json
 import sqlite3
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 import pandas as pd
 
 

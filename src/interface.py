@@ -1,9 +1,7 @@
 # src/interface.py
 from __future__ import annotations
-
 import json
 import sys
-from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any
@@ -17,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.model import (
+from src.model import (  # noqa: E402
     default_regime,
     load_project_inputs_from_excel,
     run_model,

@@ -1,12 +1,10 @@
 # src/results_store.py
 from __future__ import annotations
-
 import json
 import hashlib
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, List
-
+from typing import Any, Dict, Tuple
 import pandas as pd
 
 
