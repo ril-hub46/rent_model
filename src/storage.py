@@ -1,12 +1,9 @@
-# src/storage.py
 from __future__ import annotations
-
 import json
 import sqlite3
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
-
+from typing import Any, Dict, Tuple
 import pandas as pd
 
 
@@ -100,7 +97,6 @@ def save_run(
                 scenario_name,
                 excel_path,
                 regime_key,
-                regime_key,
                 float(gold_price) if gold_price is not None else None,
                 float(discount_rate) if discount_rate is not None else None,
                 float(royalty_rate) if royalty_rate is not None else None,
@@ -168,4 +164,3 @@ def load_run(db_path: str, run_id: int) -> Tuple[Dict[str, Any], pd.DataFrame]:
     df_annual = pd.DataFrame(rows).sort_values("Year" if "Year" in rows[0] else "year")
 
     return indicators, df_annual
-# ---------------------------

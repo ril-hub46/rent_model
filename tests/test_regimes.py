@@ -1,19 +1,23 @@
 from __future__ import annotations
 import pytest
-from src.regimes import (royalty_rate_from_gold_price,FiscalRegime,CM2003,CM2015)
+from src.regimes import royalty_rate_from_gold_price, FiscalRegime, CM2003, CM2015
+
 
 def test_royalty_rate_low_price() -> None:
     assert royalty_rate_from_gold_price(800.0) == pytest.approx(0.03)
     assert royalty_rate_from_gold_price(1000.0) == pytest.approx(0.03)
+
 
 def test_royalty_rate_mid_price() -> None:
     assert royalty_rate_from_gold_price(1000.01) == pytest.approx(0.04)
     assert royalty_rate_from_gold_price(1200.0) == pytest.approx(0.04)
     assert royalty_rate_from_gold_price(1500.0) == pytest.approx(0.04)
 
+
 def test_royalty_rate_high_price() -> None:
     assert royalty_rate_from_gold_price(1500.01) == pytest.approx(0.05)
     assert royalty_rate_from_gold_price(2000.0) == pytest.approx(0.05)
+
 
 def test_cm2003_parameters() -> None:
     assert isinstance(CM2003, FiscalRegime)
@@ -23,6 +27,7 @@ def test_cm2003_parameters() -> None:
     assert CM2003.dividend_wht_rate == pytest.approx(0.0625)
     assert CM2003.imf_rate == pytest.approx(0.005)
     assert CM2003.local_dev_rate == pytest.approx(0.0)
+
 
 def test_cm2015_parameters() -> None:
     assert isinstance(CM2015, FiscalRegime)

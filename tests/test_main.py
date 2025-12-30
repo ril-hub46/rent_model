@@ -1,6 +1,5 @@
 from __future__ import annotations
 import sys
-from pathlib import Path
 import pandas as pd
 import pytest
 from src import main as main_mod
@@ -8,7 +7,7 @@ from src import main as main_mod
 
 def test_main_sweep_price_without_prices_raises_system_exit(monkeypatch):
     """
-     Verify that main() crashes cleanly if --sweep_price is used without --prices.
+    Verify that main() crashes cleanly if --sweep_price is used without --prices.
     """
     monkeypatch.setattr(
         sys,

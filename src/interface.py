@@ -6,8 +6,7 @@ import sys
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Any
-
+from typing import Dict, Any
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -18,7 +17,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.model import default_regime, load_project_inputs_from_excel, run_model
+from src.model import (
+    default_regime,
+    load_project_inputs_from_excel,
+    run_model,
+)
 
 
 # ----------------------------
@@ -44,7 +47,9 @@ def save_scenario(results_dir: Path, df: pd.DataFrame, ind: dict, meta: dict) ->
 
     df.to_parquet(out_parquet, index=False)
     payload = {"indicators": ind, "meta": meta}
-    out_json.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    out_json.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     return out_parquet
 
 
@@ -54,7 +59,9 @@ def save_sweep(results_dir: Path, df_sweep: pd.DataFrame, meta: dict) -> Path:
     out_csv = results_dir / f"sweep_{ts}.csv"
     out_json = results_dir / f"sweep_{ts}.json"
     df_sweep.to_csv(out_csv, index=False)
-    out_json.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    out_json.write_text(
+        json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     return out_csv
 
 
@@ -131,12 +138,16 @@ def run_scenario_row(
         "NPV_pre_tax": float(ind.get("NPV_pre_tax", np.nan)),
         "NPV_post_tax": float(ind.get("NPV_post_tax", np.nan)),
         "Gov_NPV": float(ind.get("Gov_NPV", np.nan)),
-        "TEMI": float(ind.get("TEMI", np.nan)) if ind.get("TEMI", None) is not None else np.nan,
+        "TEMI": float(ind.get("TEMI", np.nan))
+        if ind.get("TEMI", None) is not None
+        else np.nan,
     }
     return out
 
 
-def run_scenarios_table(inputs0, regime_code: str, scenarios: pd.DataFrame) -> pd.DataFrame:
+def run_scenarios_table(
+    inputs0, regime_code: str, scenarios: pd.DataFrame
+) -> pd.DataFrame:
     required = {"gold_price", "discount_rate", "royalty_rate", "cit_rate"}
     missing = required - set(scenarios.columns)
     if missing:
@@ -175,7 +186,9 @@ def main():
     )
 
     if not uploaded:
-        st.info("Importe ton fichier Excel (.xlsx) dans la barre latérale pour démarrer.")
+        st.info(
+            "Importe ton fichier Excel (.xlsx) dans la barre latérale pour démarrer."
+        )
         st.stop()
 
     excel_path = persist_uploaded_excel(uploaded)
@@ -185,7 +198,10 @@ def main():
 
     with st.sidebar.expander("Avancé: noms des feuilles", expanded=False):
         mine_sheet = st.text_input("Feuille mine (optionnel)", value="").strip() or None
-        amort_sheet = st.text_input("Feuille amortissement", value="Amortissement").strip() or "Amortissement"
+        amort_sheet = (
+            st.text_input("Feuille amortissement", value="Amortissement").strip()
+            or "Amortissement"
+        )
 
     # Charger inputs (Excel)
     try:
@@ -218,28 +234,32 @@ def main():
 
         gold_price = cA.number_input(
             "Cours de l'or (USD/oz)",
-            min_value=0.0, max_value=100000.0,
+            min_value=0.0,
+            max_value=100000.0,
             value=float(default_gold),
             step=50.0,
             format="%.2f",
         )
         royalty_rate = cB.number_input(
             "Redevance minière",
-            min_value=0.0, max_value=1.0,
+            min_value=0.0,
+            max_value=1.0,
             value=float(default_royalty),
             step=0.001,
             format="%.6f",
         )
         cit_rate = cC.number_input(
             "impôt sur les sociétés",
-            min_value=0.0, max_value=1.0,
+            min_value=0.0,
+            max_value=1.0,
             value=float(default_cit),
             step=0.001,
             format="%.6f",
         )
         discount_rate = cD.number_input(
             "Taux d'actualisation",
-            min_value=0.0, max_value=1.0,
+            min_value=0.0,
+            max_value=1.0,
             value=float(default_disc),
             step=0.001,
             format="%.6f",
@@ -260,7 +280,10 @@ def main():
 
         # KPIs
         k1, k2, k3, k4, k5 = st.columns(5)
-        k1.metric("TEMI", f"{ind['TEMI']*100:.2f}%" if np.isfinite(ind.get("TEMI", np.nan)) else "NA")
+        k1.metric(
+            "TEMI",
+            f"{ind['TEMI']*100:.2f}%" if np.isfinite(ind.get("TEMI", np.nan)) else "NA",
+        )
         k3.metric("NPV pré-tax", f"{ind.get('NPV_pre_tax', np.nan):,.0f}")
         k4.metric("NPV post-tax", f"{ind.get('NPV_post_tax', np.nan):,.0f}")
         k5.metric("Gov NPV", f"{ind.get('Gov_NPV', np.nan):,.0f}")
@@ -324,9 +347,24 @@ def main():
         # default scenarios table
         default_table = pd.DataFrame(
             [
-                {"gold_price": 1200.0, "royalty_rate": default_royalty, "cit_rate": default_cit, "discount_rate": default_disc},
-                {"gold_price": 1600.0, "royalty_rate": default_royalty, "cit_rate": default_cit, "discount_rate": default_disc},
-                {"gold_price": 2000.0, "royalty_rate": default_royalty, "cit_rate": default_cit, "discount_rate": default_disc},
+                {
+                    "gold_price": 1200.0,
+                    "royalty_rate": default_royalty,
+                    "cit_rate": default_cit,
+                    "discount_rate": default_disc,
+                },
+                {
+                    "gold_price": 1600.0,
+                    "royalty_rate": default_royalty,
+                    "cit_rate": default_cit,
+                    "discount_rate": default_disc,
+                },
+                {
+                    "gold_price": 2000.0,
+                    "royalty_rate": default_royalty,
+                    "cit_rate": default_cit,
+                    "discount_rate": default_disc,
+                },
             ]
         )
 
@@ -379,7 +417,9 @@ def main():
         if not runs:
             st.info("Aucun résultat sauvegardé pour l’instant.")
         else:
-            pick = st.selectbox("Choisir un scénario", options=[p.name for p in runs], index=0)
+            pick = st.selectbox(
+                "Choisir un scénario", options=[p.name for p in runs], index=0
+            )
             chosen = results_dir / pick
             df_old, payload = load_saved_scenario(chosen)
 

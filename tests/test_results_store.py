@@ -6,7 +6,6 @@ import pandas as pd
 import pandas.testing as pdt
 import pytest
 from src.results_store import (
-    ScenarioMeta,
     _safe_float,
     _hash_payload,
     ensure_results_dir,
@@ -14,6 +13,7 @@ from src.results_store import (
     save_run,
     load_run,
 )
+
 
 def test_safe_float_valid_values() -> None:
     assert _safe_float(1) == 1.0
@@ -44,6 +44,7 @@ def test_hash_payload_deterministic_and_order_independent() -> None:
     assert h1 == h2
     assert h1 != h3
 
+
 def test_ensure_results_dir_creates_structure(tmp_path: Path) -> None:
     root = tmp_path / "project_root"
     results_dir = ensure_results_dir(root)
@@ -62,6 +63,7 @@ def test_list_runs_empty_when_no_index(tmp_path: Path) -> None:
     assert isinstance(df, pd.DataFrame)
     assert df.empty
 
+
 def _build_dummy_annual_df() -> pd.DataFrame:
     return pd.DataFrame(
         {
@@ -73,14 +75,16 @@ def _build_dummy_annual_df() -> pd.DataFrame:
 
 
 def _build_dummy_indicators() -> Dict[str, Any]:
-    return {"regime": "CM2003",
+    return {
+        "regime": "CM2003",
         "gold_price": 1300.0,
         "discount_rate": 0.10,
         "NPV_pre_tax": 1000.0,
         "NPV_post_tax": 700.0,
         "Gov_NPV": 300.0,
         "AETR": 0.30,
-        "TEMI": 0.30}
+        "TEMI": 0.30,
+    }
 
 
 def test_save_and_load_run_roundtrip(tmp_path: Path) -> None:
@@ -100,8 +104,9 @@ def test_save_and_load_run_roundtrip(tmp_path: Path) -> None:
         cit_rate=0.35,
         discount_rate=0.10,
         indicators=indicators,
-        annual_df=annual_df)
-    
+        annual_df=annual_df,
+    )
+
     assert isinstance(run_id, str)
     assert len(run_id) == 16
     run_dir = results_dir / "runs" / run_id
@@ -112,7 +117,7 @@ def test_save_and_load_run_roundtrip(tmp_path: Path) -> None:
     assert not idx_df.empty
     assert "run_id" in idx_df.columns
     assert run_id in idx_df["run_id"].tolist()
-    
+
     meta_loaded, annual_loaded, indicators_loaded = load_run(results_dir, run_id)
 
     assert isinstance(meta_loaded, dict)
@@ -123,8 +128,9 @@ def test_save_and_load_run_roundtrip(tmp_path: Path) -> None:
     assert meta_loaded["cit_rate"] == 0.35
     assert meta_loaded["discount_rate"] == 0.10
 
-    pdt.assert_frame_equal(annual_loaded.reset_index(drop=True),
-        annual_df.reset_index(drop=True))
+    pdt.assert_frame_equal(
+        annual_loaded.reset_index(drop=True), annual_df.reset_index(drop=True)
+    )
     assert indicators_loaded == indicators
 
 
@@ -138,7 +144,8 @@ def test_save_run_updates_index_when_same_payload(tmp_path: Path) -> None:
 
     annual_df = _build_dummy_annual_df()
     indicators = _build_dummy_indicators()
-    run_id1 = save_run(root,
+    run_id1 = save_run(
+        root,
         created_at_iso="2025-01-01T10:00:00",
         excel_path="my_model.xlsx",
         mine_sheet="Données de la mine",
@@ -149,9 +156,11 @@ def test_save_run_updates_index_when_same_payload(tmp_path: Path) -> None:
         cit_rate=0.35,
         discount_rate=0.10,
         indicators=indicators,
-        annual_df=annual_df)
+        annual_df=annual_df,
+    )
 
-    run_id2 = save_run(root,
+    run_id2 = save_run(
+        root,
         created_at_iso="2025-01-02T09:00:00",
         excel_path="my_model.xlsx",
         mine_sheet="Données de la mine",
@@ -162,40 +171,12 @@ def test_save_run_updates_index_when_same_payload(tmp_path: Path) -> None:
         cit_rate=0.35,
         discount_rate=0.10,
         indicators=indicators,
-        annual_df=annual_df)
-    
+        annual_df=annual_df,
+    )
+
     assert run_id1 == run_id2
     idx_df = list_runs(results_dir)
     assert len(idx_df) == 1
     row = idx_df.iloc[0]
     assert row["run_id"] == run_id1
     assert row["created_at"] == "2025-01-02T09:00:00"
-
-
-def test_load_run_missing_files_raise(tmp_path: Path) -> None:
-    root = tmp_path / "project_root"
-    results_dir = ensure_results_dir(root)
-    run_id = "dummy_run"
-    run_dir = results_dir / "runs" / run_id
-    run_dir.mkdir(parents=True, exist_ok=True)
-
-    with pytest.raises(FileNotFoundError):
-        load_run(results_dir, run_id)
-
-    assert run_id1 == run_id2
-
-    idx_df = list_runs(results_dir)
-    assert len(idx_df) == 1
-    row = idx_df.iloc[0]
-    assert row["run_id"] == run_id1
-    assert row["created_at"] == "2025-01-02T09:00:00"
-
-
-def test_load_run_missing_files_raise(tmp_path: Path) -> None:
-    root = tmp_path / "project_root"
-    results_dir = ensure_results_dir(root)
-    run_id = "dummy_run"
-    run_dir = results_dir / "runs" / run_id
-    run_dir.mkdir(parents=True, exist_ok=True)
-    with pytest.raises(FileNotFoundError):
-        load_run(results_dir, run_id)

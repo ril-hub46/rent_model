@@ -2,7 +2,17 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
-from src.model import (_is_year,_excel_like_npv,_pick_row,_read_scalar_from_sheet,ProjectInputs,FiscalRegime,default_regime,royalty_rate_for_price,run_model)
+from src.model import (
+    _is_year,
+    _excel_like_npv,
+    _pick_row,
+    _read_scalar_from_sheet,
+    ProjectInputs,
+    FiscalRegime,
+    default_regime,
+    royalty_rate_for_price,
+    run_model,
+)
 
 
 class TestIsYear:
@@ -95,6 +105,7 @@ class TestReadScalarFromSheet:
         v = _read_scalar_from_sheet(df, r"Taux\s+d['’]actualisation", fallback=0.1)
         assert v == pytest.approx(0.1)
 
+
 class TestDefaultRegime:
     def test_cm2003_properties(self) -> None:
         r = default_regime("CM2003")
@@ -130,8 +141,10 @@ class TestRoyaltyRateForPrice:
             assert royalty_rate_for_price(regime, p) == pytest.approx(0.07)
 
     def test_progressive_mode_uses_bands(self) -> None:
-        regime = FiscalRegime(name="TEST_PROG",cit_rate=0.3,royalty_mode="progressive")
-        
+        regime = FiscalRegime(
+            name="TEST_PROG", cit_rate=0.3, royalty_mode="progressive"
+        )
+
         assert royalty_rate_for_price(regime, 900.0) == pytest.approx(0.03)
         assert royalty_rate_for_price(regime, 1000.0) == pytest.approx(0.04)
         assert royalty_rate_for_price(regime, 1299.9) == pytest.approx(0.04)
@@ -212,7 +225,7 @@ class TestRunModelBasic:
         assert ind["NPV_pre_tax"] > 0
         assert ind["NPV_post_tax"] > 0
         assert ind["Gov_NPV"] > 0
-        
+
         assert ind["AETR"] == pytest.approx(ind["Gov_NPV"] / ind["NPV_pre_tax"])
         assert ind["TEMI"] == pytest.approx(
             1.0 - ind["NPV_post_tax"] / ind["NPV_pre_tax"]
@@ -228,12 +241,16 @@ class TestRunModelOverrides:
         tbl_double, ind_double = run_model(inputs, regime, gold_price=2000.0)
 
         assert ind_double["gold_price"] == pytest.approx(2000.0)
-        assert tbl_double["Revenue_CA"].iloc[0] == pytest.approx(2.0 * tbl_base["Revenue_CA"].iloc[0])
+        assert tbl_double["Revenue_CA"].iloc[0] == pytest.approx(
+            2.0 * tbl_base["Revenue_CA"].iloc[0]
+        )
 
     def test_royalty_and_cit_rate_overrides(self) -> None:
         inputs = _build_simple_inputs()
         regime = _build_flat_regime()
-        tbl, ind = run_model(inputs, regime, royalty_rate_override=0.10, cit_rate_override=0.50)
+        tbl, ind = run_model(
+            inputs, regime, royalty_rate_override=0.10, cit_rate_override=0.50
+        )
         assert ind["royalty_rate"] == pytest.approx(0.10)
         assert ind["cit_rate"] == pytest.approx(0.50)
         taxable = tbl["Taxable_income"].values
@@ -244,23 +261,27 @@ class TestRunModelOverrides:
 class TestRunModelLossCarryForwardAndIMF:
     def _build_loss_inputs(self) -> ProjectInputs:
         years = np.array([1, 2, 3, 4], dtype=int)
-        return ProjectInputs(years=years,
+        return ProjectInputs(
+            years=years,
             revenue=np.array([50.0, 80.0, 80.0, 80.0]),
             opex=np.array([40.0, 40.0, 40.0, 40.0]),
             capex=np.array([0.0, 0.0, 0.0, 0.0]),
             depreciation=np.array([20.0, 20.0, 20.0, 20.0]),
             base_gold_price=1000.0,
-            discount_rate=0.10)
+            discount_rate=0.10,
+        )
 
     def test_loss_carry_forward_reduces_future_taxable(self) -> None:
         inputs = self._build_loss_inputs()
-        regime = FiscalRegime(name="TEST2",
+        regime = FiscalRegime(
+            name="TEST2",
             cit_rate=0.30,
             royalty_mode="flat",
             royalty_rate_flat=0.0,
             local_development_levy=0.0,
             imf_rate=0.0,
-            loss_carry_forward=True)
+            loss_carry_forward=True,
+        )
 
         tbl, _ = run_model(inputs, regime)
         expected_taxable = np.array([0.0, 10.0, 20.0, 20.0])
@@ -271,13 +292,15 @@ class TestRunModelLossCarryForwardAndIMF:
 
     def test_imf_applied_only_when_no_cit(self) -> None:
         inputs = self._build_loss_inputs()
-        regime = FiscalRegime(name="IMF",
+        regime = FiscalRegime(
+            name="IMF",
             cit_rate=0.30,
             royalty_mode="flat",
             royalty_rate_flat=0.0,
             local_development_levy=0.0,
-            imf_rate=0.01, 
-            loss_carry_forward=True)
+            imf_rate=0.01,
+            loss_carry_forward=True,
+        )
         tbl, _ = run_model(inputs, regime)
 
         assert tbl["CIT"].iloc[0] == pytest.approx(0.0)
