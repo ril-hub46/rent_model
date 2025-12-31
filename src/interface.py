@@ -203,7 +203,7 @@ def main():
     st.sidebar.header("1) Base de données (Excel)")
     uploaded = st.sidebar.file_uploader(
         "Importer le fichier Excel du projet",
-        type=["xlsx","csv"],
+        type=["xlsx", "csv"],
         accept_multiple_files=False,
         help="Charge le fichier contenant les données économiques du projet (production, coûts, CAPEX/OPEX...).",
     )
@@ -265,8 +265,6 @@ def main():
             "Cours de l'or (USD/oz)",
             min_value=0.0,
             max_value=100000.0,
-            min_value=0.0,
-            max_value=100000.0,
             value=float(default_gold),
             step=50.0,
             format="%.2f",
@@ -274,8 +272,6 @@ def main():
         )
         royalty_rate = cB.number_input(
             "Redevance minière",
-            min_value=0.0,
-            max_value=1.0,
             min_value=0.0,
             max_value=1.0,
             value=float(default_royalty),
@@ -294,8 +290,6 @@ def main():
         )
         discount_rate = cD.number_input(
             "Taux d'actualisation",
-            min_value=0.0,
-            max_value=1.0,
             min_value=0.0,
             max_value=1.0,
             value=float(default_disc),
@@ -332,7 +326,9 @@ def main():
         k5.metric("Gov NPV", f"{ind.get('Gov_NPV', np.nan):,.0f}")
 
         st.subheader("Graphique : cash-flows & recettes publiques (annuel)")
-        st.caption("❓ CF = cash-flow (flux de trésorerie). Pré-tax = avant prlèvement. Post-tax = après prélèvement.")
+        st.caption(
+            "❓ CF = cash-flow (flux de trésorerie). Pré-tax = avant prlèvement. Post-tax = après prélèvement."
+        )
         plot_timeseries(df)
 
         with st.expander("Indicateurs (détail)", expanded=False):
@@ -361,7 +357,9 @@ def main():
     # ----------------------------
     with tab2:
         st.subheader("Tableau annuel (cash-flows & prélèvements)")
-        st.caption("Affiche le tableau annuel du scénario unique (calculé avec les valeurs saisies dans l’onglet 1).")
+        st.caption(
+            "Affiche le tableau annuel du scénario unique (calculé avec les valeurs saisies dans l’onglet 1)."
+        )
         st.dataframe(df, use_container_width=True)
 
     # ----------------------------
@@ -451,11 +449,17 @@ def main():
             st.dataframe(df_sweep, use_container_width=True)
 
             st.subheader("Graphiques")
-            st.caption("❓ Si tu veux une fiscalité “progressive”, regarde si **TEMI** augmente avec **gold_price**.")
+            st.caption(
+                "❓ Si tu veux une fiscalité “progressive”, regarde si **TEMI** augmente avec **gold_price**."
+            )
             plot_xy(df_sweep, "gold_price", "Gov_NPV", "Gov NPV vs cours de l'or")
             plot_xy(df_sweep, "gold_price", "TEMI", "TEMI vs cours de l'or")
 
-            if st.checkbox("Enregistrer ces résultats (scénarios)", value=False, help="Sauvegarde le tableau des résultats et un fichier meta JSON dans data/results/."):
+            if st.checkbox(
+                "Enregistrer ces résultats (scénarios)",
+                value=False,
+                help="Sauvegarde le tableau des résultats et un fichier meta JSON dans data/results/.",
+            ):
                 meta = {
                     "excel_uploaded_name": uploaded.name,
                     "excel_saved_path": str(excel_path.relative_to(ROOT)),
