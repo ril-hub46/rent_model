@@ -4,3 +4,6 @@ openpyxl
 streamlit
 matplotlib
 -e .
+pytest
+pre-commit
+pytest-mock
