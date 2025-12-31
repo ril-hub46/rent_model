@@ -73,9 +73,7 @@ def load_saved_scenario(parquet_path: Path) -> tuple[pd.DataFrame, dict]:
 
 
 def persist_uploaded_excel(uploaded_file) -> Path:
-    """
-    Sauvegarde le fichier uploadé dans data/uploads/ et renvoie le chemin.
-    """
+    """Sauvegarde le fichier uploadé dans data/uploads/ et renvoie le chemin."""
     ensure_dirs()
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     safe_name = uploaded_file.name.replace("/", "_").replace("\\", "_")
@@ -108,6 +106,21 @@ def plot_xy(df: pd.DataFrame, xcol: str, ycol: str, title: str):
 
 
 # ----------------------------
+# Metric helper (compatible old/new streamlit)
+# ----------------------------
+def metric(label: str, value: str, help_text: str, delta: str | None = None):
+    """
+    st.metric a un paramètre help= dans les versions récentes.
+    On garde une compatibilité si l'utilisateur a une version plus ancienne.
+    """
+    try:
+        st.metric(label=label, value=value, delta=delta, help=help_text)
+    except TypeError:
+        st.metric(label=label, value=value, delta=delta)
+        st.caption(f"❓ {help_text}")
+
+
+# ----------------------------
 # Core: run multiple scenarios table
 # ----------------------------
 def run_scenario_row(
@@ -127,7 +140,7 @@ def run_scenario_row(
         royalty_rate_override=float(royalty_rate),
         cit_rate_override=float(cit_rate),
     )
-    # on renvoie une ligne de résultats
+
     out = {
         "gold_price": float(gold_price),
         "discount_rate": float(discount_rate),
@@ -171,16 +184,28 @@ def run_scenarios_table(
 # ----------------------------
 def main():
     st.set_page_config(page_title="Rent_share", layout="wide")
-    st.title(" Rent_share")
+    st.title("Rent_share")
 
     ensure_dirs()
     results_dir = ROOT / "data" / "results"
 
+    # Petit glossaire global
+    with st.expander("📌 Glossaire", expanded=False):
+        st.markdown(
+            "- **NPV / VAN** : valeur actuelle nette des flux futurs actualisés.\n"
+            "- **Pré-tax / Post-tax** : avant / après fiscalité.\n"
+            "- **TEMI** : taux effectif moyen d’imposition (part de la rente captée via l’ensemble des prélèvements).\n"
+            "- **Redevance minière (royalty)** : prélèvement calculé souvent sur le chiffre d’affaires (revenus bruts).\n"
+            "- **CIT / IS** : impôt sur les bénéfices (Corporate Income Tax).\n"
+            "- **Taux d’actualisation** : reflète la valeur du temps et le risque (plus il est élevé, plus les flux futurs “valent moins”).\n"
+        )
+
     st.sidebar.header("1) Base de données (Excel)")
     uploaded = st.sidebar.file_uploader(
         "Importer le fichier Excel du projet",
-        type=["xlsx"],
+        type=["xlsx","csv"],
         accept_multiple_files=False,
+        help="Charge le fichier contenant les données économiques du projet (production, coûts, CAPEX/OPEX...).",
     )
 
     if not uploaded:
@@ -192,7 +217,12 @@ def main():
     excel_path = persist_uploaded_excel(uploaded)
 
     st.sidebar.header("2) Régime fiscal")
-    regime_code = st.sidebar.selectbox("Régime fiscal", ["CM2003", "CM2015"], index=1)
+    regime_code = st.sidebar.selectbox(
+        "Régime fiscal",
+        ["CM2003", "CM2015"],
+        index=1,
+        help="Choix du régime fiscal (paramètres par défaut du code minier / règles fiscales).",
+    )
 
     with st.sidebar.expander("Avancé: noms des feuilles", expanded=False):
         mine_sheet = st.text_input("Feuille mine (optionnel)", value="").strip() or None
@@ -220,31 +250,38 @@ def main():
     default_cit = 0.175 if regime_code == "CM2003" else 0.275
 
     tab1, tab2, tab3, tab4 = st.tabs(
-        ["Scénario unique", "Table annuelle", "Scénarios ", "Résultats sauvegardés"]
+        ["Scénario unique", "Table annuelle", "Simulations", "Résultats sauvegardés"]
     )
 
     # ----------------------------
     # TAB 1: single scenario (user can vary all)
     # ----------------------------
     with tab1:
-        st.subheader("Scénario ")
+        st.subheader("Scénario de base")
+
         cA, cB, cC, cD = st.columns(4)
 
         gold_price = cA.number_input(
             "Cours de l'or (USD/oz)",
             min_value=0.0,
             max_value=100000.0,
+            min_value=0.0,
+            max_value=100000.0,
             value=float(default_gold),
             step=50.0,
             format="%.2f",
+            help="Prix de référence de l’or utilisé pour calculer les revenus (CA) du projet.",
         )
         royalty_rate = cB.number_input(
             "Redevance minière",
             min_value=0.0,
             max_value=1.0,
+            min_value=0.0,
+            max_value=1.0,
             value=float(default_royalty),
             step=0.001,
             format="%.6f",
+            help="Taux de redevance minière (Appliqué sur  chiffre d’affaires).",
         )
         cit_rate = cC.number_input(
             "impôt sur les sociétés",
@@ -253,17 +290,25 @@ def main():
             value=float(default_cit),
             step=0.001,
             format="%.6f",
+            help="Taux d’impôt sur les bénéfices (Corporate Income Tax).",
         )
         discount_rate = cD.number_input(
             "Taux d'actualisation",
             min_value=0.0,
             max_value=1.0,
+            min_value=0.0,
+            max_value=1.0,
             value=float(default_disc),
             step=0.001,
             format="%.6f",
+            help="Taux utilisé pour actualiser les flux futurs en valeur présente (VAN/NPV) (donnée des investisseurs).",
         )
 
-        autosave = st.checkbox("Enregistrer automatiquement ce scénario", value=False)
+        autosave = st.checkbox(
+            "Enregistrer automatiquement ce scénario",
+            value=False,
+            help="Si activé, le scénario (table annuelle + indicateurs) est stocké dans data/results/.",
+        )
 
         # Run model
         regime = default_regime(regime_code)
@@ -286,10 +331,11 @@ def main():
         k4.metric("NPV post-tax", f"{ind.get('NPV_post_tax', np.nan):,.0f}")
         k5.metric("Gov NPV", f"{ind.get('Gov_NPV', np.nan):,.0f}")
 
-        st.subheader("Graphiques (scénario)")
+        st.subheader("Graphique : cash-flows & recettes publiques (annuel)")
+        st.caption("❓ CF = cash-flow (flux de trésorerie). Pré-tax = avant prlèvement. Post-tax = après prélèvement.")
         plot_timeseries(df)
 
-        with st.expander("Indicateurs (JSON)", expanded=False):
+        with st.expander("Indicateurs (détail)", expanded=False):
             st.json(ind)
 
         if autosave:
@@ -311,38 +357,26 @@ def main():
             st.success("Scénario sauvegardé dans data/results/")
 
     # ----------------------------
-    # TAB 2: annual table for last run (single scenario)
+    # TAB 2: annual table
     # ----------------------------
     with tab2:
         st.subheader("Tableau annuel (cash-flows & prélèvements)")
-        st.caption("Affiche la table annuelle du scénario unique (onglet 1).")
-        # Recalcule pour être sûr si user arrive directement ici
-        regime = default_regime(regime_code)
-        df, _ = run_model(
-            inputs=inputs0,
-            regime=regime,
-            gold_price=float(default_gold),
-            discount_rate=float(default_disc),
-            royalty_rate_override=float(default_royalty),
-            cit_rate_override=float(default_cit),
-        )
+        st.caption("Affiche le tableau annuel du scénario unique (calculé avec les valeurs saisies dans l’onglet 1).")
         st.dataframe(df, use_container_width=True)
 
     # ----------------------------
     # TAB 3: multi scenarios (user varies gold + rates per row)
     # ----------------------------
     with tab3:
-        st.subheader("Scénarios (multi) — l'utilisateur saisit or + taux par scénario")
-
+        st.subheader("Simulations (table de scénarios modifiable)")
         st.markdown(
-            "👉 Modifie la table ci-dessous (ajoute/supprime des lignes) :\n"
-            "- `gold_price` (USD/oz)\n"
-            "- `royalty_rate`\n"
-            "- `cit_rate`\n"
-            "- `discount_rate`\n"
+            "👉 Modifie la table ci-dessous (ajoute/supprime des lignes). Chaque ligne = **un scénario**.\n\n"
+            "- **gold_price** : cours de l’or (USD/oz)\n"
+            "- **royalty_rate** : redevance minière\n"
+            "- **cit_rate** : impôt sur les sociétés\n"
+            "- **discount_rate** : taux d’actualisation\n"
         )
 
-        # default scenarios table
         default_table = pd.DataFrame(
             [
                 {
@@ -374,10 +408,37 @@ def main():
             num_rows="dynamic",
             use_container_width=True,
             key="scenarios_editor",
+            column_config={
+                "gold_price": st.column_config.NumberColumn(
+                    "gold_price",
+                    help="Cours de l’or (USD/oz) utilisé pour calculer les revenus du projet.",
+                    format="%.2f",
+                ),
+                "royalty_rate": st.column_config.NumberColumn(
+                    "royalty_rate",
+                    help="Taux de redevance minière (souvent sur CA). Ex: 0.05 = 5%.",
+                    format="%.6f",
+                ),
+                "cit_rate": st.column_config.NumberColumn(
+                    "cit_rate",
+                    help="Taux d’impôt sur les sociétés. Ex: 0.275 = 27.5%.",
+                    format="%.6f",
+                ),
+                "discount_rate": st.column_config.NumberColumn(
+                    "discount_rate",
+                    help="Taux d’actualisation pour la VAN/NPV. Ex: 0.10 = 10%.",
+                    format="%.6f",
+                ),
+            },
         )
         st.session_state["scenarios_table"] = edited
 
-        if st.button("Lancer les scénarios"):
+        run_btn = st.button(
+            "Lancer les scénarios",
+            help="Calcule les indicateurs (NPV, Gov NPV, TEMI) pour chaque ligne/scénario.",
+        )
+
+        if run_btn:
             try:
                 df_sweep = run_scenarios_table(inputs0, regime_code, edited)
             except Exception as e:
@@ -390,10 +451,11 @@ def main():
             st.dataframe(df_sweep, use_container_width=True)
 
             st.subheader("Graphiques")
-            plot_xy(df_sweep, "gold_price", "Gov_NPV", "Gov_NPV vs cours de l'or")
+            st.caption("❓ Si tu veux une fiscalité “progressive”, regarde si **TEMI** augmente avec **gold_price**.")
+            plot_xy(df_sweep, "gold_price", "Gov_NPV", "Gov NPV vs cours de l'or")
             plot_xy(df_sweep, "gold_price", "TEMI", "TEMI vs cours de l'or")
 
-            if st.checkbox("Enregistrer ces résultats (scénarios)", value=False):
+            if st.checkbox("Enregistrer ces résultats (scénarios)", value=False, help="Sauvegarde le tableau des résultats et un fichier meta JSON dans data/results/."):
                 meta = {
                     "excel_uploaded_name": uploaded.name,
                     "excel_saved_path": str(excel_path.relative_to(ROOT)),
