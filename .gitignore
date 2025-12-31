@@ -17,4 +17,6 @@ venv/
 
 # Fichiers OS
 .DS_Store
-Thumbs.db
+Thumbs.
+
+*.egg-info/

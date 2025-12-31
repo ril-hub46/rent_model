@@ -10,17 +10,37 @@ from src.simulations import sweep_price_from_excel
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Rent-sharing model (Burkina Faso)")
     p.add_argument("--excel", required=True, help="Path to Excel workbook ")
-    p.add_argument("--regime", default="CM2003", choices=["CM2003", "CM2015"], help="Fiscal regime")
+    p.add_argument(
+        "--regime", default="CM2003", choices=["CM2003", "CM2015"], help="Fiscal regime"
+    )
     p.add_argument("--mine_sheet", default=None, help="Override mine sheet name")
-    p.add_argument("--amort_sheet", default="Amortissement", help="Amortization sheet name")
+    p.add_argument(
+        "--amort_sheet", default="Amortissement", help="Amortization sheet name"
+    )
 
-    p.add_argument("--gold_price", type=float, default=None, help="Override gold price (USD/oz)")
-    p.add_argument("--discount", type=float, default=None, help="Override discount rate (e.g., 0.10)")
-    p.add_argument("--royalty_rate", type=float, default=None, help="Override royalty rate (e.g., 0.05)")
-    p.add_argument("--cit_rate", type=float, default=None, help="Override CIT rate (e.g., 0.275)")
+    p.add_argument(
+        "--gold_price", type=float, default=None, help="Override gold price (USD/oz)"
+    )
+    p.add_argument(
+        "--discount",
+        type=float,
+        default=None,
+        help="Override discount rate (e.g., 0.10)",
+    )
+    p.add_argument(
+        "--royalty_rate",
+        type=float,
+        default=None,
+        help="Override royalty rate (e.g., 0.05)",
+    )
+    p.add_argument(
+        "--cit_rate", type=float, default=None, help="Override CIT rate (e.g., 0.275)"
+    )
 
     p.add_argument("--sweep_price", action="store_true", help="Run sweep over --prices")
-    p.add_argument("--prices", type=float, nargs="+", default=None, help="Gold prices for sweep")
+    p.add_argument(
+        "--prices", type=float, nargs="+", default=None, help="Gold prices for sweep"
+    )
     p.add_argument("--out", default=None, help="Output CSV path for sweep")
 
     return p.parse_args()
@@ -71,7 +91,16 @@ def main() -> None:
     )
 
     print(f"--- Regime: {ind['regime']} ---")
-    for k in ["gold_price", "discount_rate", "royalty_rate", "cit_rate", "NPV_pre_tax", "NPV_post_tax", "Gov_NPV", "TEMI"]:
+    for k in [
+        "gold_price",
+        "discount_rate",
+        "royalty_rate",
+        "cit_rate",
+        "NPV_pre_tax",
+        "NPV_post_tax",
+        "Gov_NPV",
+        "TEMI",
+    ]:
         print(f"{k}: {ind[k]}")
 
     print("\n--- Annual table (head) ---")

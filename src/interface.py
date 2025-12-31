@@ -1,12 +1,10 @@
 # src/interface.py
 from __future__ import annotations
-
 import json
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Any
-
+from typing import Dict, Any
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -17,7 +15,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.model import default_regime, load_project_inputs_from_excel, run_model
+from src.model import (  # noqa: E402
+    default_regime,
+    load_project_inputs_from_excel,
+    run_model,
+)
 
 
 # ----------------------------
@@ -43,7 +45,9 @@ def save_scenario(results_dir: Path, df: pd.DataFrame, ind: dict, meta: dict) ->
 
     df.to_parquet(out_parquet, index=False)
     payload = {"indicators": ind, "meta": meta}
-    out_json.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    out_json.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     return out_parquet
 
 
@@ -53,7 +57,9 @@ def save_sweep(results_dir: Path, df_sweep: pd.DataFrame, meta: dict) -> Path:
     out_csv = results_dir / f"sweep_{ts}.csv"
     out_json = results_dir / f"sweep_{ts}.json"
     df_sweep.to_csv(out_csv, index=False)
-    out_json.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    out_json.write_text(
+        json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     return out_csv
 
 
@@ -143,12 +149,16 @@ def run_scenario_row(
         "NPV_pre_tax": float(ind.get("NPV_pre_tax", np.nan)),
         "NPV_post_tax": float(ind.get("NPV_post_tax", np.nan)),
         "Gov_NPV": float(ind.get("Gov_NPV", np.nan)),
-        "TEMI": float(ind.get("TEMI", np.nan)) if ind.get("TEMI", None) is not None else np.nan,
+        "TEMI": float(ind.get("TEMI", np.nan))
+        if ind.get("TEMI", None) is not None
+        else np.nan,
     }
     return out
 
 
-def run_scenarios_table(inputs0, regime_code: str, scenarios: pd.DataFrame) -> pd.DataFrame:
+def run_scenarios_table(
+    inputs0, regime_code: str, scenarios: pd.DataFrame
+) -> pd.DataFrame:
     required = {"gold_price", "discount_rate", "royalty_rate", "cit_rate"}
     missing = required - set(scenarios.columns)
     if missing:
@@ -193,13 +203,15 @@ def main():
     st.sidebar.header("1) Base de données (Excel)")
     uploaded = st.sidebar.file_uploader(
         "Importer le fichier Excel du projet",
-        type=["xlsx","csv"],
+        type=["xlsx", "csv"],
         accept_multiple_files=False,
         help="Charge le fichier contenant les données économiques du projet (production, coûts, CAPEX/OPEX...).",
     )
 
     if not uploaded:
-        st.info("Importe ton fichier Excel dans la barre latérale pour démarrer.")
+        st.info(
+            "Importe ton fichier Excel (.xlsx) dans la barre latérale pour démarrer."
+        )
         st.stop()
 
     excel_path = persist_uploaded_excel(uploaded)
@@ -213,16 +225,11 @@ def main():
     )
 
     with st.sidebar.expander("Avancé: noms des feuilles", expanded=False):
-        mine_sheet = st.text_input(
-            "Feuille mine (optionnel)",
-            value="",
-            help="Nom de la feuille principale (si ton fichier n’utilise pas le nom par défaut). Laisse vide si tu n’es pas sûr.",
-        ).strip() or None
-        amort_sheet = st.text_input(
-            "Feuille amortissement",
-            value="Amortissement",
-            help="Nom de la feuille qui contient la table d’amortissement / règles d’amortissement.",
-        ).strip() or "Amortissement"
+        mine_sheet = st.text_input("Feuille mine (optionnel)", value="").strip() or None
+        amort_sheet = (
+            st.text_input("Feuille amortissement", value="Amortissement").strip()
+            or "Amortissement"
+        )
 
     # Charger inputs (Excel)
     try:
@@ -273,7 +280,7 @@ def main():
             help="Taux de redevance minière (Appliqué sur  chiffre d’affaires).",
         )
         cit_rate = cC.number_input(
-            "Impôt sur les sociétés (CIT/IS)",
+            "impôt sur les sociétés",
             min_value=0.0,
             max_value=1.0,
             value=float(default_cit),
@@ -310,39 +317,18 @@ def main():
 
         # KPIs
         k1, k2, k3, k4, k5 = st.columns(5)
-
-        temi_val = ind.get("TEMI", np.nan)
-        npv_pre = ind.get("NPV_pre_tax", np.nan)
-        npv_post = ind.get("NPV_post_tax", np.nan)
-        gov_npv = ind.get("Gov_NPV", np.nan)
-
-        with k1:
-            metric(
-                "TEMI",
-                f"{temi_val*100:.2f}%" if np.isfinite(temi_val) else "NA",
-                "Taux effectif moyen d’imposition : part de la rente captée par l’État (tous prélèvements).",
-            )
-        with k3:
-            metric(
-                "NPV pré-tax",
-                f"{npv_pre:,.0f}" if np.isfinite(npv_pre) else "NA",
-                "VAN des flux avant fiscalité (projet “brut”).",
-            )
-        with k4:
-            metric(
-                "NPV post-tax",
-                f"{npv_post:,.0f}" if np.isfinite(npv_post) else "NA",
-                "VAN des flux après fiscalité (investisseur).",
-            )
-        with k5:
-            metric(
-                "Gov NPV",
-                f"{gov_npv:,.0f}" if np.isfinite(gov_npv) else "NA",
-                "VAN des recettes publiques (redevances + impôts + autres).",
-            )
+        k1.metric(
+            "TEMI",
+            f"{ind['TEMI']*100:.2f}%" if np.isfinite(ind.get("TEMI", np.nan)) else "NA",
+        )
+        k3.metric("NPV pré-tax", f"{ind.get('NPV_pre_tax', np.nan):,.0f}")
+        k4.metric("NPV post-tax", f"{ind.get('NPV_post_tax', np.nan):,.0f}")
+        k5.metric("Gov NPV", f"{ind.get('Gov_NPV', np.nan):,.0f}")
 
         st.subheader("Graphique : cash-flows & recettes publiques (annuel)")
-        st.caption("❓ CF = cash-flow (flux de trésorerie). Pré-tax = avant prlèvement. Post-tax = après prélèvement.")
+        st.caption(
+            "❓ CF = cash-flow (flux de trésorerie). Pré-tax = avant prlèvement. Post-tax = après prélèvement."
+        )
         plot_timeseries(df)
 
         with st.expander("Indicateurs (détail)", expanded=False):
@@ -371,7 +357,9 @@ def main():
     # ----------------------------
     with tab2:
         st.subheader("Tableau annuel (cash-flows & prélèvements)")
-        st.caption("Affiche le tableau annuel du scénario unique (calculé avec les valeurs saisies dans l’onglet 1).")
+        st.caption(
+            "Affiche le tableau annuel du scénario unique (calculé avec les valeurs saisies dans l’onglet 1)."
+        )
         st.dataframe(df, use_container_width=True)
 
     # ----------------------------
@@ -389,9 +377,24 @@ def main():
 
         default_table = pd.DataFrame(
             [
-                {"gold_price": 1200.0, "royalty_rate": default_royalty, "cit_rate": default_cit, "discount_rate": default_disc},
-                {"gold_price": 1600.0, "royalty_rate": default_royalty, "cit_rate": default_cit, "discount_rate": default_disc},
-                {"gold_price": 2000.0, "royalty_rate": default_royalty, "cit_rate": default_cit, "discount_rate": default_disc},
+                {
+                    "gold_price": 1200.0,
+                    "royalty_rate": default_royalty,
+                    "cit_rate": default_cit,
+                    "discount_rate": default_disc,
+                },
+                {
+                    "gold_price": 1600.0,
+                    "royalty_rate": default_royalty,
+                    "cit_rate": default_cit,
+                    "discount_rate": default_disc,
+                },
+                {
+                    "gold_price": 2000.0,
+                    "royalty_rate": default_royalty,
+                    "cit_rate": default_cit,
+                    "discount_rate": default_disc,
+                },
             ]
         )
 
@@ -446,11 +449,17 @@ def main():
             st.dataframe(df_sweep, use_container_width=True)
 
             st.subheader("Graphiques")
-            st.caption("❓ Si tu veux une fiscalité “progressive”, regarde si **TEMI** augmente avec **gold_price**.")
+            st.caption(
+                "❓ Si tu veux une fiscalité “progressive”, regarde si **TEMI** augmente avec **gold_price**."
+            )
             plot_xy(df_sweep, "gold_price", "Gov_NPV", "Gov NPV vs cours de l'or")
             plot_xy(df_sweep, "gold_price", "TEMI", "TEMI vs cours de l'or")
 
-            if st.checkbox("Enregistrer ces résultats (scénarios)", value=False, help="Sauvegarde le tableau des résultats et un fichier meta JSON dans data/results/."):
+            if st.checkbox(
+                "Enregistrer ces résultats (scénarios)",
+                value=False,
+                help="Sauvegarde le tableau des résultats et un fichier meta JSON dans data/results/.",
+            ):
                 meta = {
                     "excel_uploaded_name": uploaded.name,
                     "excel_saved_path": str(excel_path.relative_to(ROOT)),
@@ -473,10 +482,7 @@ def main():
             st.info("Aucun résultat sauvegardé pour l’instant.")
         else:
             pick = st.selectbox(
-                "Choisir un scénario sauvegardé",
-                options=[p.name for p in runs],
-                index=0,
-                help="Charge un scénario précédemment sauvegardé (table annuelle + indicateurs).",
+                "Choisir un scénario", options=[p.name for p in runs], index=0
             )
             chosen = results_dir / pick
             df_old, payload = load_saved_scenario(chosen)
