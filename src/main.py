@@ -71,7 +71,7 @@ def main() -> None:
     )
 
     print(f"--- Regime: {ind['regime']} ---")
-    for k in ["gold_price", "discount_rate", "royalty_rate", "cit_rate", "NPV_pre_tax", "NPV_post_tax", "Gov_NPV", "TEMI"]:
+    for k in ["gold_price", "discount_rate", "royalty_rate", "cit_rate", "VAN_pre_tax", "VAN_post_tax", "Gov_VAN", "TEMI"]:
         print(f"{k}: {ind[k]}")
 
     print("\n--- Annual table (head) ---")

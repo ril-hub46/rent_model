@@ -324,19 +324,19 @@ def main():
             )
         with k3:
             metric(
-                "NPV pré-tax",
+                "VAN pré-tax",
                 f"{npv_pre:,.0f}" if np.isfinite(npv_pre) else "NA",
                 "VAN des flux avant fiscalité (projet “brut”).",
             )
         with k4:
             metric(
-                "NPV post-tax",
+                "VAN post-tax",
                 f"{npv_post:,.0f}" if np.isfinite(npv_post) else "NA",
                 "VAN des flux après fiscalité (investisseur).",
             )
         with k5:
             metric(
-                "Gov NPV",
+                "Gov VAN (recettes)",
                 f"{gov_npv:,.0f}" if np.isfinite(gov_npv) else "NA",
                 "VAN des recettes publiques (redevances + impôts + autres).",
             )
@@ -389,9 +389,11 @@ def main():
 
         default_table = pd.DataFrame(
             [
-                {"gold_price": 1200.0, "royalty_rate": default_royalty, "cit_rate": default_cit, "discount_rate": default_disc},
-                {"gold_price": 1600.0, "royalty_rate": default_royalty, "cit_rate": default_cit, "discount_rate": default_disc},
-                {"gold_price": 2000.0, "royalty_rate": default_royalty, "cit_rate": default_cit, "discount_rate": default_disc},
+                {"gold_price": 1300.0, "royalty_rate": 0.03, "cit_rate": default_cit, "discount_rate": default_disc},
+                {"gold_price": 1400.0, "royalty_rate": 0.04, "cit_rate": default_cit, "discount_rate": default_disc},
+                {"gold_price": 1500.0, "royalty_rate": 0.05, "cit_rate": default_cit, "discount_rate": default_disc},
+                {"gold_price": 1600.0, "royalty_rate": 0.06, "cit_rate": default_cit, "discount_rate": default_disc},
+                {"gold_price": 1700.0, "royalty_rate": 0.07, "cit_rate": default_cit, "discount_rate": default_disc},
             ]
         )
 
@@ -447,7 +449,6 @@ def main():
 
             st.subheader("Graphiques")
             st.caption("❓ Si tu veux une fiscalité “progressive”, regarde si **TEMI** augmente avec **gold_price**.")
-            plot_xy(df_sweep, "gold_price", "Gov_NPV", "Gov NPV vs cours de l'or")
             plot_xy(df_sweep, "gold_price", "TEMI", "TEMI vs cours de l'or")
 
             if st.checkbox("Enregistrer ces résultats (scénarios)", value=False, help="Sauvegarde le tableau des résultats et un fichier meta JSON dans data/results/."):
