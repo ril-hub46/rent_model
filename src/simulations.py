@@ -22,10 +22,7 @@ def sweep_price_from_excel(
     """
     reg = default_regime(regime_code)
     inputs = load_project_inputs_from_excel(
-        excel_path,
-        regime=regime_code,
-        mine_sheet=mine_sheet,
-        amort_sheet=amort_sheet,
+        excel_path, regime=regime_code, mine_sheet=mine_sheet, amort_sheet=amort_sheet
     )
 
     rows = []
@@ -42,7 +39,14 @@ def sweep_price_from_excel(
 
     df = pd.DataFrame(rows)
     cols = [
-        "regime", "gold_price", "discount_rate", "royalty_rate", "cit_rate",
-        "NPV_pre_tax", "NPV_post_tax", "Gov_NPV", "TEMI"
+        "regime",
+        "gold_price",
+        "discount_rate",
+        "royalty_rate",
+        "cit_rate",
+        "NPV_pre_tax",
+        "NPV_post_tax",
+        "Gov_NPV",
+        "TEMI",
     ]
     return df[cols]

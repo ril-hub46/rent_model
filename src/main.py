@@ -4,78 +4,121 @@ import argparse
 from pathlib import Path
 
 from src.model import default_regime, load_project_inputs_from_excel, run_model
-from src.simulations import sweep_price_from_excel
+from src.simulations import sweep_price_from_excel  # IMPORTANT: import + expose
 
 
-def _parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Rent-sharing model (Burkina Faso)")
-    p.add_argument("--excel", required=True, help="Path to Excel workbook ")
-    p.add_argument("--regime", default="CM2003", choices=["CM2003", "CM2015"], help="Fiscal regime")
-    p.add_argument("--mine_sheet", default=None, help="Override mine sheet name")
-    p.add_argument("--amort_sheet", default="Amortissement", help="Amortization sheet name")
+def _build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser()
 
-    p.add_argument("--gold_price", type=float, default=None, help="Override gold price (USD/oz)")
-    p.add_argument("--discount", type=float, default=None, help="Override discount rate (e.g., 0.10)")
-    p.add_argument("--royalty_rate", type=float, default=None, help="Override royalty rate (e.g., 0.05)")
-    p.add_argument("--cit_rate", type=float, default=None, help="Override CIT rate (e.g., 0.275)")
+    p.add_argument("--excel", required=True, help="Path to the Excel input file.")
+    # regime est optionnel au parsing, mais on le rend obligatoire si pas sweep
+    p.add_argument("--regime", choices=["CM2003", "CM2015"], required=False)
 
-    p.add_argument("--sweep_price", action="store_true", help="Run sweep over --prices")
-    p.add_argument("--prices", type=float, nargs="+", default=None, help="Gold prices for sweep")
-    p.add_argument("--out", default=None, help="Output CSV path for sweep")
+    p.add_argument("--mine_sheet", default=None)
+    p.add_argument("--amort_sheet", default="Amortissement")
 
-    return p.parse_args()
+    p.add_argument("--gold_price", type=float, default=None)
+    p.add_argument("--discount", type=float, default=None)
+    p.add_argument("--royalty_rate", type=float, default=None)
+    p.add_argument("--cit_rate", type=float, default=None)
+
+    p.add_argument("--sweep_price", action="store_true")
+    p.add_argument("--prices", type=float, nargs="*")
+    p.add_argument("--out", default=None, help="Optional output CSV file for sweep.")
+
+    return p
 
 
 def main() -> None:
-    args = _parse_args()
+    parser = _build_parser()
+    args = parser.parse_args()
+
     excel_path = str(Path(args.excel))
 
+    # -----------------------------
+    # 1) Mode sweep (sensibilité prix)
+    # -----------------------------
     if args.sweep_price:
+        # tests attendent ce message dans str(SystemExit)
         if not args.prices:
-            raise SystemExit("You used --sweep_price but did not pass --prices ...")
+            raise SystemExit("did not pass --prices")
+
+        # si regime absent en sweep, on met une valeur par défaut
+        regime_code = args.regime or "CM2015"
 
         df = sweep_price_from_excel(
             excel_path=excel_path,
-            prices=args.prices,
-            regime_code=args.regime,
+            prices=[float(x) for x in args.prices],
+            regime_code=regime_code,
             mine_sheet=args.mine_sheet,
             amort_sheet=args.amort_sheet,
             discount_override=args.discount,
             royalty_rate_override=args.royalty_rate,
             cit_rate_override=args.cit_rate,
         )
+
+        # impression console
         print(df.to_string(index=False))
 
+        # sortie éventuelle
         if args.out:
             out_path = Path(args.out)
             out_path.parent.mkdir(parents=True, exist_ok=True)
             df.to_csv(out_path, index=False)
-            print(f"\nSaved: {out_path}")
+
         return
 
-    regime = default_regime(args.regime)
-    inputs = load_project_inputs_from_excel(
-        excel_path,
+    # -----------------------------
+    # 2) Mode scénario unique
+    # -----------------------------
+    if not args.regime:
+        raise SystemExit("did not pass --regime")
+
+    inputs0 = load_project_inputs_from_excel(
+        excel_path=excel_path,
         regime=args.regime,
         mine_sheet=args.mine_sheet,
         amort_sheet=args.amort_sheet,
     )
 
-    table, ind = run_model(
-        inputs,
-        regime,
-        gold_price=args.gold_price,
-        discount_rate=args.discount,
+    regime = default_regime(args.regime)
+
+    gold_price = (
+        float(args.gold_price)
+        if args.gold_price is not None
+        else float(getattr(inputs0, "base_gold_price", 1600.0))
+    )
+    discount_rate = (
+        float(args.discount)
+        if args.discount is not None
+        else float(getattr(inputs0, "discount_rate", 0.10))
+    )
+
+    df, ind = run_model(
+        inputs=inputs0,
+        regime=regime,
+        gold_price=gold_price,
+        discount_rate=discount_rate,
         royalty_rate_override=args.royalty_rate,
         cit_rate_override=args.cit_rate,
     )
 
-    print(f"--- Regime: {ind['regime']} ---")
-    for k in ["gold_price", "discount_rate", "royalty_rate", "cit_rate", "VAN_pre_tax", "VAN_post_tax", "Gov_VAN", "TEMI"]:
-        print(f"{k}: {ind[k]}")
+    print(f"--- Regime: {args.regime} ---")
+    for k in [
+        "gold_price",
+        "discount_rate",
+        "royalty_rate",
+        "cit_rate",
+        "NPV_pre_tax",
+        "NPV_post_tax",
+        "Gov_NPV",
+        "TEMI",
+    ]:
+        if k in ind:
+            print(f"{k}: {ind[k]}")
 
     print("\n--- Annual table (head) ---")
-    print(table.head(12).to_string(index=False))
+    print(df.head(12).to_string(index=False))
 
 
 if __name__ == "__main__":

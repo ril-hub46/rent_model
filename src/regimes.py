@@ -24,11 +24,11 @@ def royalty_rate_from_gold_price(price: float) -> float:
 @dataclass(frozen=True)
 class FiscalRegime:
     name: Literal["CM2003", "CM2015"]
-    cit_rate_default: float                 # IS
-    state_participation: float              # % participation Etat (dividendes)
-    dividend_wht_rate: float                # retenue sur dividendes (IRCM)
-    imf_rate: float                         # minimum tax (ex: 0.5% du CA)
-    local_dev_rate: float                   # CM2015: fonds dev local (ex: 1% du CA)
+    cit_rate_default: float  # IS
+    state_participation: float  # % participation Etat (dividendes)
+    dividend_wht_rate: float  # retenue sur dividendes (IRCM)
+    imf_rate: float  # minimum tax (ex: 0.5% du CA)
+    local_dev_rate: float  # CM2015: fonds dev local (ex: 1% du CA)
     royalty_rate_func: Callable[[float], float] = royalty_rate_from_gold_price
 
 
@@ -47,5 +47,5 @@ CM2015 = FiscalRegime(
     state_participation=0.10,
     dividend_wht_rate=0.0625,
     imf_rate=0.005,
-    local_dev_rate=0.01,   # (ta feuille fiscale met 1%)
+    local_dev_rate=0.01,  # (ta feuille fiscale met 1%)
 )

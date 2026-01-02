@@ -1,12 +1,10 @@
 # src/results_store.py
 from __future__ import annotations
-
 import json
 import hashlib
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, List
-
+from typing import Any, Dict, Tuple
 import pandas as pd
 
 
@@ -118,10 +116,14 @@ def save_run(
 
     rdir = _run_dir(results_dir, run_id)
     # 1) Meta
-    (rdir / "meta.json").write_text(json.dumps(asdict(meta), ensure_ascii=False, indent=2), encoding="utf-8")
+    (rdir / "meta.json").write_text(
+        json.dumps(asdict(meta), ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
     # 2) Indicators
-    (rdir / "indicators.json").write_text(json.dumps(indicators, ensure_ascii=False, indent=2), encoding="utf-8")
+    (rdir / "indicators.json").write_text(
+        json.dumps(indicators, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
     # 3) Annual DF
     annual_df.to_pickle(rdir / "annual.pkl")
@@ -144,7 +146,9 @@ def save_run(
     return run_id
 
 
-def load_run(results_dir: Path, run_id: str) -> Tuple[Dict[str, Any], pd.DataFrame, Dict[str, Any]]:
+def load_run(
+    results_dir: Path, run_id: str
+) -> Tuple[Dict[str, Any], pd.DataFrame, Dict[str, Any]]:
     """
     Retourne (meta, annual_df, indicators)
     """
