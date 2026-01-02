@@ -414,19 +414,19 @@ def main():
                 },
                 {
                     "gold_price": 1500.0,
-                    "royalty_rate": 0.05,
+                    "royalty_rate": 0.04,
                     "cit_rate": default_cit,
                     "discount_rate": default_disc,
                 },
                 {
                     "gold_price": 1600.0,
-                    "royalty_rate": 0.06,
+                    "royalty_rate": 0.05,
                     "cit_rate": default_cit,
                     "discount_rate": default_disc,
                 },
                 {
                     "gold_price": 1700.0,
-                    "royalty_rate": 0.07,
+                    "royalty_rate": 0.05,
                     "cit_rate": default_cit,
                     "discount_rate": default_disc,
                 },
