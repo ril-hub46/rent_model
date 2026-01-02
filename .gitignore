@@ -20,3 +20,8 @@ venv/
 Thumbs.
 
 *.egg-info/
+# data artifacts
+data/uploads/
+data/results/
+data/~$*.xlsx
+
