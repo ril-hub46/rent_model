@@ -317,13 +317,36 @@ def main():
 
         # KPIs
         k1, k2, k3, k4, k5 = st.columns(5)
-        k1.metric(
-            "TEMI",
-            f"{ind['TEMI']*100:.2f}%" if np.isfinite(ind.get("TEMI", np.nan)) else "NA",
-        )
-        k3.metric("NPV pré-tax", f"{ind.get('NPV_pre_tax', np.nan):,.0f}")
-        k4.metric("NPV post-tax", f"{ind.get('NPV_post_tax', np.nan):,.0f}")
-        k5.metric("Gov NPV", f"{ind.get('Gov_NPV', np.nan):,.0f}")
+
+        temi_val = ind.get("TEMI", np.nan)
+        npv_pre = ind.get("NPV_pre_tax", np.nan)
+        npv_post = ind.get("NPV_post_tax", np.nan)
+        gov_npv = ind.get("Gov_NPV", np.nan)
+
+        with k1:
+            metric(
+                "TEMI",
+                f"{temi_val*100:.2f}%" if np.isfinite(temi_val) else "NA",
+                "Taux effectif moyen d’imposition : part de la rente captée par l’État (tous prélèvements).",
+            )
+        with k3:
+            metric(
+                "VAN pré-tax",
+                f"{npv_pre:,.0f}" if np.isfinite(npv_pre) else "NA",
+                "VAN des flux avant fiscalité (projet “brut”).",
+            )
+        with k4:
+            metric(
+                "VAN post-tax",
+                f"{npv_post:,.0f}" if np.isfinite(npv_post) else "NA",
+                "VAN des flux après fiscalité (investisseur).",
+            )
+        with k5:
+            metric(
+                "Gov VAN (recettes)",
+                f"{gov_npv:,.0f}" if np.isfinite(gov_npv) else "NA",
+                "VAN des recettes publiques (redevances + impôts + autres).",
+            )
 
         st.subheader("Graphique : cash-flows & recettes publiques (annuel)")
         st.caption(
@@ -378,20 +401,32 @@ def main():
         default_table = pd.DataFrame(
             [
                 {
-                    "gold_price": 1200.0,
-                    "royalty_rate": default_royalty,
+                    "gold_price": 1300.0,
+                    "royalty_rate": 0.03,
+                    "cit_rate": default_cit,
+                    "discount_rate": default_disc,
+                },
+                {
+                    "gold_price": 1400.0,
+                    "royalty_rate": 0.04,
+                    "cit_rate": default_cit,
+                    "discount_rate": default_disc,
+                },
+                {
+                    "gold_price": 1500.0,
+                    "royalty_rate": 0.04,
                     "cit_rate": default_cit,
                     "discount_rate": default_disc,
                 },
                 {
                     "gold_price": 1600.0,
-                    "royalty_rate": default_royalty,
+                    "royalty_rate": 0.05,
                     "cit_rate": default_cit,
                     "discount_rate": default_disc,
                 },
                 {
-                    "gold_price": 2000.0,
-                    "royalty_rate": default_royalty,
+                    "gold_price": 1700.0,
+                    "royalty_rate": 0.05,
                     "cit_rate": default_cit,
                     "discount_rate": default_disc,
                 },
@@ -452,7 +487,6 @@ def main():
             st.caption(
                 "❓ Si tu veux une fiscalité “progressive”, regarde si **TEMI** augmente avec **gold_price**."
             )
-            plot_xy(df_sweep, "gold_price", "Gov_NPV", "Gov NPV vs cours de l'or")
             plot_xy(df_sweep, "gold_price", "TEMI", "TEMI vs cours de l'or")
 
             if st.checkbox(
