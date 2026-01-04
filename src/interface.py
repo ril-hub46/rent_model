@@ -1,31 +1,29 @@
 # src/interface.py
 from __future__ import annotations
+
 import json
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
-import matplotlib.pyplot as plt
 
 # --- Fix imports when running: streamlit run src/interface.py
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.model import (  # noqa: E402
-    default_regime,
-    load_project_inputs_from_excel,
-    run_model,
-)
+from src.model import default_regime, load_project_inputs_from_excel, run_model  # noqa: E402
 
 
 # ----------------------------
 # Utilities: folders & persistence
 # ----------------------------
-def ensure_dirs():
+def ensure_dirs() -> None:
     (ROOT / "data").mkdir(parents=True, exist_ok=True)
     (ROOT / "data" / "uploads").mkdir(parents=True, exist_ok=True)
     (ROOT / "data" / "results").mkdir(parents=True, exist_ok=True)
@@ -56,6 +54,7 @@ def save_sweep(results_dir: Path, df_sweep: pd.DataFrame, meta: dict) -> Path:
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_csv = results_dir / f"sweep_{ts}.csv"
     out_json = results_dir / f"sweep_{ts}.json"
+
     df_sweep.to_csv(out_csv, index=False)
     out_json.write_text(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
@@ -85,7 +84,7 @@ def persist_uploaded_excel(uploaded_file) -> Path:
 # ----------------------------
 # Plots
 # ----------------------------
-def plot_timeseries(df: pd.DataFrame):
+def plot_timeseries(df: pd.DataFrame) -> None:
     fig = plt.figure()
     plt.plot(df["Year"], df["CF_pre_tax"], label="CF pré-tax")
     plt.plot(df["Year"], df["CF_post_tax"], label="CF post-tax")
@@ -96,7 +95,7 @@ def plot_timeseries(df: pd.DataFrame):
     st.pyplot(fig)
 
 
-def plot_xy(df: pd.DataFrame, xcol: str, ycol: str, title: str):
+def plot_xy(df: pd.DataFrame, xcol: str, ycol: str, title: str) -> None:
     fig = plt.figure()
     plt.plot(df[xcol], df[ycol])
     plt.title(title)
@@ -108,7 +107,7 @@ def plot_xy(df: pd.DataFrame, xcol: str, ycol: str, title: str):
 # ----------------------------
 # Metric helper (compatible old/new streamlit)
 # ----------------------------
-def metric(label: str, value: str, help_text: str, delta: str | None = None):
+def metric(label: str, value: str, help_text: str, delta: str | None = None) -> None:
     """
     st.metric a un paramètre help= dans les versions récentes.
     On garde une compatibilité si l'utilisateur a une version plus ancienne.
@@ -141,7 +140,7 @@ def run_scenario_row(
         cit_rate_override=float(cit_rate),
     )
 
-    out = {
+    return {
         "gold_price": float(gold_price),
         "discount_rate": float(discount_rate),
         "royalty_rate": float(royalty_rate),
@@ -150,21 +149,20 @@ def run_scenario_row(
         "NPV_post_tax": float(ind.get("NPV_post_tax", np.nan)),
         "Gov_NPV": float(ind.get("Gov_NPV", np.nan)),
         "TEMI": float(ind.get("TEMI", np.nan))
-        if ind.get("TEMI", None) is not None
+        if ind.get("TEMI") is not None
         else np.nan,
     }
-    return out
 
 
 def run_scenarios_table(
     inputs0, regime_code: str, scenarios: pd.DataFrame
 ) -> pd.DataFrame:
-    required = {"gold_price", "discount_rate", "royalty_rate", "cit_rate"}
-    missing = required - set(scenarios.columns)
+    required_cols = {"gold_price", "discount_rate", "royalty_rate", "cit_rate"}
+    missing = required_cols - set(scenarios.columns)
     if missing:
-        raise ValueError(f"Colonnes manquantes: {missing}")
+        raise ValueError(f"Colonnes manquantes dans la table scénarios : {missing}")
 
-    rows = []
+    rows: list[dict] = []
     for _, r in scenarios.iterrows():
         rows.append(
             run_scenario_row(
@@ -182,14 +180,14 @@ def run_scenarios_table(
 # ----------------------------
 # App
 # ----------------------------
-def main():
+def main() -> None:
     st.set_page_config(page_title="Rent_share", layout="wide")
     st.title("Rent_share")
 
     ensure_dirs()
     results_dir = ROOT / "data" / "results"
 
-    # Petit glossaire global
+    # Glossaire
     with st.expander("📌 Glossaire", expanded=False):
         st.markdown(
             "- **NPV / VAN** : valeur actuelle nette des flux futurs actualisés.\n"
@@ -197,13 +195,13 @@ def main():
             "- **TEMI** : taux effectif moyen d’imposition (part de la rente captée via l’ensemble des prélèvements).\n"
             "- **Redevance minière (royalty)** : prélèvement calculé souvent sur le chiffre d’affaires (revenus bruts).\n"
             "- **CIT / IS** : impôt sur les bénéfices (Corporate Income Tax).\n"
-            "- **Taux d’actualisation** : reflète la valeur du temps et le risque (plus il est élevé, plus les flux futurs “valent moins”).\n"
+            "- **Taux d’actualisation** : reflète la valeur du temps et le risque.\n"
         )
 
     st.sidebar.header("1) Base de données (Excel)")
     uploaded = st.sidebar.file_uploader(
         "Importer le fichier Excel du projet",
-        type=["xlsx", "csv"],
+        type=["xlsx"],
         accept_multiple_files=False,
         help="Charge le fichier contenant les données économiques du projet (production, coûts, CAPEX/OPEX...).",
     )
@@ -243,7 +241,7 @@ def main():
         st.error(f"Erreur lecture Excel : {e}")
         st.stop()
 
-    # Defaults (issus du fichier)
+    # Defaults
     default_gold = float(getattr(inputs0, "base_gold_price", 1600.0))
     default_disc = float(getattr(inputs0, "discount_rate", 0.10))
     default_royalty = 0.05
@@ -254,7 +252,7 @@ def main():
     )
 
     # ----------------------------
-    # TAB 1: single scenario (user can vary all)
+    # TAB 1: single scenario
     # ----------------------------
     with tab1:
         st.subheader("Scénario de base")
@@ -268,7 +266,7 @@ def main():
             value=float(default_gold),
             step=50.0,
             format="%.2f",
-            help="Prix de référence de l’or utilisé pour calculer les revenus (CA) du projet.",
+            help="Prix de référence de l’or utilisé pour calculer les revenus du projet.",
         )
         royalty_rate = cB.number_input(
             "Redevance minière",
@@ -277,10 +275,10 @@ def main():
             value=float(default_royalty),
             step=0.001,
             format="%.6f",
-            help="Taux de redevance minière (Appliqué sur  chiffre d’affaires).",
+            help="Taux de redevance minière (souvent appliqué sur le chiffre d’affaires).",
         )
         cit_rate = cC.number_input(
-            "impôt sur les sociétés",
+            "Impôt sur les sociétés (CIT/IS)",
             min_value=0.0,
             max_value=1.0,
             value=float(default_cit),
@@ -295,7 +293,7 @@ def main():
             value=float(default_disc),
             step=0.001,
             format="%.6f",
-            help="Taux utilisé pour actualiser les flux futurs en valeur présente (VAN/NPV) (donnée des investisseurs).",
+            help="Taux utilisé pour actualiser les flux futurs en valeur présente (VAN/NPV).",
         )
 
         autosave = st.checkbox(
@@ -304,7 +302,6 @@ def main():
             help="Si activé, le scénario (table annuelle + indicateurs) est stocké dans data/results/.",
         )
 
-        # Run model
         regime = default_regime(regime_code)
         df, ind = run_model(
             inputs=inputs0,
@@ -315,13 +312,12 @@ def main():
             cit_rate_override=float(cit_rate),
         )
 
-        # KPIs
         k1, k2, k3, k4, k5 = st.columns(5)
 
-        temi_val = ind.get("TEMI", np.nan)
-        npv_pre = ind.get("NPV_pre_tax", np.nan)
-        npv_post = ind.get("NPV_post_tax", np.nan)
-        gov_npv = ind.get("Gov_NPV", np.nan)
+        temi_val = float(ind.get("TEMI", np.nan))
+        npv_pre = float(ind.get("NPV_pre_tax", np.nan))
+        npv_post = float(ind.get("NPV_post_tax", np.nan))
+        gov_npv = float(ind.get("Gov_NPV", np.nan))
 
         with k1:
             metric(
@@ -350,7 +346,7 @@ def main():
 
         st.subheader("Graphique : cash-flows & recettes publiques (annuel)")
         st.caption(
-            "❓ CF = cash-flow (flux de trésorerie). Pré-tax = avant prlèvement. Post-tax = après prélèvement."
+            "❓ CF = cash-flow (flux de trésorerie). Pré-tax = avant. Post-tax = après."
         )
         plot_timeseries(df)
 
@@ -380,13 +376,11 @@ def main():
     # ----------------------------
     with tab2:
         st.subheader("Tableau annuel (cash-flows & prélèvements)")
-        st.caption(
-            "Affiche le tableau annuel du scénario unique (calculé avec les valeurs saisies dans l’onglet 1)."
-        )
+        st.caption("Affiche le tableau annuel du scénario calculé dans l’onglet 1.")
         st.dataframe(df, use_container_width=True)
 
     # ----------------------------
-    # TAB 3: multi scenarios (user varies gold + rates per row)
+    # TAB 3: multi scenarios
     # ----------------------------
     with tab3:
         st.subheader("Simulations (table de scénarios modifiable)")
@@ -444,22 +438,22 @@ def main():
             column_config={
                 "gold_price": st.column_config.NumberColumn(
                     "gold_price",
-                    help="Cours de l’or (USD/oz) utilisé pour calculer les revenus du projet.",
+                    help="Cours de l’or (USD/oz).",
                     format="%.2f",
                 ),
                 "royalty_rate": st.column_config.NumberColumn(
                     "royalty_rate",
-                    help="Taux de redevance minière (souvent sur CA). Ex: 0.05 = 5%.",
+                    help="Taux de redevance. Ex: 0.05 = 5%.",
                     format="%.6f",
                 ),
                 "cit_rate": st.column_config.NumberColumn(
                     "cit_rate",
-                    help="Taux d’impôt sur les sociétés. Ex: 0.275 = 27.5%.",
+                    help="Taux d’IS/CIT. Ex: 0.275 = 27.5%.",
                     format="%.6f",
                 ),
                 "discount_rate": st.column_config.NumberColumn(
                     "discount_rate",
-                    help="Taux d’actualisation pour la VAN/NPV. Ex: 0.10 = 10%.",
+                    help="Taux d’actualisation. Ex: 0.10 = 10%.",
                     format="%.6f",
                 ),
             },
@@ -485,14 +479,14 @@ def main():
 
             st.subheader("Graphiques")
             st.caption(
-                "❓ Si tu veux une fiscalité “progressive”, regarde si **TEMI** augmente avec **gold_price**."
+                "❓ Fiscalité “progressive” : TEMI augmente quand gold_price augmente."
             )
             plot_xy(df_sweep, "gold_price", "TEMI", "TEMI vs cours de l'or")
 
             if st.checkbox(
                 "Enregistrer ces résultats (scénarios)",
                 value=False,
-                help="Sauvegarde le tableau des résultats et un fichier meta JSON dans data/results/.",
+                help="Sauvegarde le tableau des résultats + un JSON meta dans data/results/.",
             ):
                 meta = {
                     "excel_uploaded_name": uploaded.name,
