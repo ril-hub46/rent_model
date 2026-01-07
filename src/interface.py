@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 # --- Fix imports when running: streamlit run src/interface.py
 ROOT = Path(__file__).resolve().parents[1]
@@ -85,24 +86,117 @@ def persist_uploaded_excel(uploaded_file) -> Path:
 # ----------------------------
 # Plots
 # ----------------------------
+AXIS_STYLE = dict(
+    showgrid=True,
+    gridcolor="rgba(0,0,0,0.15)",
+    gridwidth=1,
+    linecolor="black",
+    linewidth=1.5,
+    ticks="outside",
+    tickcolor="black",
+    tickwidth=1.5,
+    ticklen=6,
+    tickfont=dict(
+        size=14,        # texte des ticks plus grand
+        color="black",
+        family="Arial"
+    )
+)
+
+LAYOUT_BASE = dict(
+    plot_bgcolor="white",
+    paper_bgcolor="white",
+    font=dict(
+        size=14,        # texte général plus grand
+        color="black",
+        family="Arial"
+    ),
+    margin=dict(l=80, r=20, t=80, b=80)  # plus d'espace pour labels
+)
+
 def plot_timeseries(df: pd.DataFrame):
-    fig = plt.figure()
-    plt.plot(df["Year"], df["CF_pre_tax"], label="CF pré-tax")
-    plt.plot(df["Year"], df["CF_post_tax"], label="CF post-tax")
-    plt.plot(df["Year"], df["Gov_revenue"], label="Recettes État")
-    plt.legend()
-    plt.xlabel("Année")
-    plt.ylabel("Montants")
-    st.pyplot(fig)
+    fig = go.Figure()
+
+    traces = [
+        ("CF pré-tax", "CF_pre_tax", "blue"),
+        ("CF post-tax", "CF_post_tax", "red"),
+        ("Recettes État", "Gov_revenue", "green")
+    ]
+
+    for name, col, color in traces:
+        fig.add_trace(go.Scatter(
+            x=df["Year"],
+            y=df[col],
+            mode="lines",
+            name=name,
+            line=dict(width=2, color=color)
+        ))
+
+        # annotation du dernier point de chaque série
+        fig.add_annotation(
+            x=df["Year"].iloc[-1],
+            y=df[col].iloc[-1],
+            text=name,
+            showarrow=False,
+            font=dict(color=color, size=14),
+            xanchor="left",
+            yanchor="middle"
+        )
+
+    fig.update_layout(
+        **LAYOUT_BASE,
+        xaxis=dict(
+            **AXIS_STYLE,
+            title=dict(
+                text="Année",
+                font=dict(size=16, family="Arial", color="black")
+            )
+        ),
+        yaxis=dict(
+            **AXIS_STYLE,
+            title=dict(
+                text="Montants",
+                font=dict(size=16, family="Arial", color="black")
+            )
+        )
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def plot_xy(df: pd.DataFrame, xcol: str, ycol: str, title: str):
-    fig = plt.figure()
-    plt.plot(df[xcol], df[ycol])
-    plt.title(title)
-    plt.xlabel(xcol)
-    plt.ylabel(ycol)
-    st.pyplot(fig)
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=df[xcol],
+        y=df[ycol],
+        mode="lines",
+        line=dict(width=2)
+    ))
+
+    fig.update_layout(
+        **LAYOUT_BASE,
+        title=dict(
+            text=title,
+            font=dict(size=18, family="Arial", color="black")  # titre du graphe
+        ),
+        xaxis=dict(
+            **AXIS_STYLE,
+            title=dict(
+                text=xcol,
+                font=dict(size=16, family="Arial", color="black")
+            )
+        ),
+        yaxis=dict(
+            **AXIS_STYLE,
+            title=dict(
+                text=ycol,
+                font=dict(size=16, family="Arial", color="black")
+            )
+        )
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
 
 
 # ----------------------------
@@ -350,7 +444,7 @@ def main():
 
         st.subheader("Graphique : cash-flows & recettes publiques (annuel)")
         st.caption(
-            "❓ CF = cash-flow (flux de trésorerie). Pré-tax = avant prlèvement. Post-tax = après prélèvement."
+            "❓ CF = cash-flow (flux de trésorerie). Pré-tax = avant prélèvement. Post-tax = après prélèvement."
         )
         plot_timeseries(df)
 
