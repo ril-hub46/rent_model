@@ -4,14 +4,16 @@ import argparse
 from pathlib import Path
 
 from src.model import default_regime, load_project_inputs_from_excel, run_model
-from src.simulations import sweep_price_from_excel  # IMPORTANT: import + expose
+from src.simulations import (
+    sweep_price_from_excel as sweep_price_from_excel,
+)  # expose for tests
 
 
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser()
 
     p.add_argument("--excel", required=True, help="Path to the Excel input file.")
-    # regime est optionnel au parsing, mais on le rend obligatoire si pas sweep
+    # obligatoire seulement si pas sweep
     p.add_argument("--regime", choices=["CM2003", "CM2015"], required=False)
 
     p.add_argument("--mine_sheet", default=None)
@@ -23,7 +25,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--cit_rate", type=float, default=None)
 
     p.add_argument("--sweep_price", action="store_true")
-    p.add_argument("--prices", type=float, nargs="*")
+    p.add_argument("--prices", type=float, nargs="*", default=None)
     p.add_argument("--out", default=None, help="Optional output CSV file for sweep.")
 
     return p
@@ -39,11 +41,11 @@ def main() -> None:
     # 1) Mode sweep (sensibilité prix)
     # -----------------------------
     if args.sweep_price:
-        # tests attendent ce message dans str(SystemExit)
+        # Les tests attendent exactement ce message
         if not args.prices:
             raise SystemExit("did not pass --prices")
 
-        # si regime absent en sweep, on met une valeur par défaut
+        # si regime absent en sweep, default (comme dans tes usages)
         regime_code = args.regime or "CM2015"
 
         df = sweep_price_from_excel(
@@ -57,10 +59,8 @@ def main() -> None:
             cit_rate_override=args.cit_rate,
         )
 
-        # impression console
         print(df.to_string(index=False))
 
-        # sortie éventuelle
         if args.out:
             out_path = Path(args.out)
             out_path.parent.mkdir(parents=True, exist_ok=True)
